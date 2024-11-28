@@ -6,10 +6,9 @@ import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function Header() {
-  const { isAuthenticated, userEmail, logout, checkAuth } = useAuth();
+  const { isAuthenticated, checkAuth } = useAuth();
   const pathname = usePathname();
 
-  // Проверяем состояние авторизации при каждом изменении пути
   useEffect(() => {
     checkAuth();
   }, [pathname, checkAuth]);
@@ -32,15 +31,8 @@ export default function Header() {
             Каталог
           </Link>
           
-          <Link 
-            href="/" 
-            className="text-lg font-medium text-gray-700 hover:text-gray-900 transition-colors"
-          >
-            Главное меню
-          </Link>
-          
           {isAuthenticated ? (
-            <div className="flex items-center space-x-6">
+            <>
               <Link 
                 href="/profile"
                 className={`text-lg font-medium ${
@@ -49,15 +41,19 @@ export default function Header() {
                     : 'text-gray-700 hover:text-gray-900'
                 } transition-colors`}
               >
-                Профиль ({userEmail})
+                Профиль
               </Link>
-              <button
-                onClick={logout}
-                className="text-lg font-medium text-gray-700 hover:text-red-600 transition-colors"
+              <Link 
+                href="/basket"
+                className={`text-lg font-medium ${
+                  pathname === '/basket' 
+                    ? 'text-gray-900' 
+                    : 'text-gray-700 hover:text-gray-900'
+                } transition-colors`}
               >
-                Выйти
-              </button>
-            </div>
+                Корзина
+              </Link>
+            </>
           ) : (
             <Link 
               href="/auth" 

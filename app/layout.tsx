@@ -1,6 +1,8 @@
 import './globals.css';
 import Header from './components/header';
 import type { Metadata } from 'next';
+import { NotificationProvider } from './contexts/NotificationContext';
+import NotificationContainer from './components/NotificationContainer';
 
 export const metadata: Metadata = {
   title: 'Shop App',
@@ -17,7 +19,10 @@ export default function RootLayout({
       <body className="min-h-screen bg-gray-50">
         <Header />
         <main className="container mx-auto p-4">
-          {children}
+          <NotificationProvider>
+            {children}
+            <NotificationContainer />
+          </NotificationProvider>
         </main>
       </body>
     </html>
