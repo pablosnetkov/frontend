@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '../components/utils/api';
 import { useNotification } from '../contexts/NotificationContext';
+import { useAuth } from '../hooks/useAuth';
 
 export default function AdminPage() {
   const router = useRouter();
+  const { isAuthenticated, loading } = useAuth();
   const { showNotification } = useNotification();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -16,6 +18,14 @@ export default function AdminPage() {
     category: '',
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+
+  // Проверяем авторизацию
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push('/auth');
+      showNotification('Необходима авторизация', 'error');
+    }
+  }, [isAuthenticated, loading, router, showNotification]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -38,7 +48,8 @@ export default function AdminPage() {
         const imageResponse = await apiRequest<{ url: string }>('/api/v1/images/', {
           method: 'POST',
           body: formData,
-          headers: {}, // Убираем Content-Type, чтобы браузер сам установил правильный для FormData
+          // Для FormData не устанавливаем Content-Type, браузер сделает это автоматически
+          headers: {} 
         });
 
         imageUrl = imageResponse.url;
@@ -47,6 +58,9 @@ export default function AdminPage() {
       // Создаем товар
       await apiRequest('/api/v1/goods/', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           ...formData,
           price: Number(formData.price),
@@ -56,7 +70,18 @@ export default function AdminPage() {
       });
 
       showNotification('Товар успешно добавлен', 'success');
-      router.push('/categories'); // или куда вы хотите перенаправить после успеха
+      
+      // Очищаем форму
+      setFormData({
+        name: '',
+        price: '',
+        description: '',
+        category: '',
+      });
+      setSelectedImage(null);
+      
+      // Перенаправляем на страницу категорий
+      router.push('/categories');
     } catch (error) {
       console.error('Ошибка при создании товара:', error);
       showNotification('Ошибка при создании товара', 'error');
@@ -64,6 +89,16 @@ export default function AdminPage() {
       setIsLoading(false);
     }
   };
+
+  // Показываем загрузку при проверке авторизации
+  if (loading) {
+    return <div className="text-center mt-8">Загрузка...</div>;
+  }
+
+  // Не показываем форму неавторизованным пользователям
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6">
