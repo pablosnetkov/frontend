@@ -53,6 +53,16 @@ export default function Header() {
               >
                 Профиль
               </Link>
+              <Link 
+                href="/admin"
+                className={`text-lg font-medium ${
+                  pathname === '/admin' 
+                    ? 'text-gray-900' 
+                    : 'text-gray-700 hover:text-gray-900'
+                } transition-colors`}
+              >
+                Админка
+              </Link>
             </>
           ) : (
             <Link 
