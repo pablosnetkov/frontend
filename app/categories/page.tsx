@@ -1,10 +1,9 @@
 import CategoryList from '../components/CategoryList';
-import Link from 'next/link';
 
 export default function CategoriesPage() {
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Категории товаров</h1>
+    <div className="container mx-auto px-4">
+      <h1 className="text-3xl font-bold mb-8">Категории товаров</h1>
       <CategoryList />
     </div>
   );
