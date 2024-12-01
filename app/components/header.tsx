@@ -20,7 +20,7 @@ export default function Header() {
           href="/" 
           className="text-2xl font-bold text-gray-800 hover:text-gray-600 transition-colors"
         >
-          Shop Name
+          JUBAMI
         </Link>
         
         <div className="flex items-center space-x-8">
@@ -34,16 +34,6 @@ export default function Header() {
           {isAuthenticated ? (
             <>
               <Link 
-                href="/profile"
-                className={`text-lg font-medium ${
-                  pathname === '/profile' 
-                    ? 'text-gray-900' 
-                    : 'text-gray-700 hover:text-gray-900'
-                } transition-colors`}
-              >
-                Профиль
-              </Link>
-              <Link 
                 href="/basket"
                 className={`text-lg font-medium ${
                   pathname === '/basket' 
@@ -52,6 +42,16 @@ export default function Header() {
                 } transition-colors`}
               >
                 Корзина
+              </Link>
+              <Link 
+                href="/profile"
+                className={`text-lg font-medium ${
+                  pathname === '/profile' 
+                    ? 'text-gray-900' 
+                    : 'text-gray-700 hover:text-gray-900'
+                } transition-colors`}
+              >
+                Профиль
               </Link>
             </>
           ) : (

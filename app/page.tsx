@@ -1,15 +1,41 @@
 import Link from 'next/link';
+import ProductCard from './components/ProductCard';
+import { apiRequest } from './components/utils/api';
 
-const Home: React.FC = () => {
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  description?: string;
+}
+
+async function getRandomProducts(): Promise<Product[]> {
+  try {
+    const response = await apiRequest<{ results: Product[] }>('/api/v1/goods/');
+    const products = response.results;
+    
+    // Получаем 3 случайных товара
+    return products
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+  } catch (error) {
+    console.error('Ошибка при загрузке товаров:', error);
+    return [];
+  }
+}
+
+export default async function Home() {
+  const randomProducts = await getRandomProducts();
+
   return (
     <div className="space-y-12">
       {/* Hero секция */}
-      <section className="bg-gray-900 text-white py-16">
+      <section className="bg-gray-900 text-white py-16 rounded-2xl">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="md:w-1/2 mb-8 md:mb-0">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                Добро пожаловать в наш магазин
+              <h1 className="text-6xl md:text-7xl font-bold mb-4 text-white">
+                jubami.com
               </h1>
               <p className="text-lg text-gray-300 mb-6">
                 Откройте для себя широкий ассортимент качественных товаров по выгодным ценам
@@ -30,22 +56,12 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Категории */}
+      {/* Популярные товары */}
       <section className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold mb-8">Популярные категории</h2>
+        <h2 className="text-3xl font-bold mb-8">Популярные товары</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {['Категория 1', 'Категория 2', 'Категория 3'].map((category, index) => (
-            <div 
-              key={index}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-            >
-              <div className="h-48 bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-400 text-4xl">{category[0]}</span>
-              </div>
-              <div className="p-4">
-                <h3 className="text-xl font-semibold text-gray-800">{category}</h3>
-              </div>
-            </div>
+          {randomProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </section>
@@ -92,6 +108,4 @@ const Home: React.FC = () => {
       </section>
     </div>
   );
-};
-
-export default Home;
+}
