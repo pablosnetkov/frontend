@@ -48,7 +48,6 @@ export default function AdminPage() {
         const imageResponse = await apiRequest<{ url: string }>('/api/v1/images/', {
           method: 'POST',
           body: formData,
-          // Для FormData не устанавливаем Content-Type, браузер сделает это автоматически
           headers: {} 
         });
 
@@ -66,7 +65,7 @@ export default function AdminPage() {
           price: Number(formData.price),
           category: Number(formData.category),
           image: imageUrl,
-        }),
+        })
       });
 
       showNotification('Товар успешно добавлен', 'success');
@@ -80,7 +79,6 @@ export default function AdminPage() {
       });
       setSelectedImage(null);
       
-      // Перенаправляем на страницу категорий
       router.push('/categories');
     } catch (error) {
       console.error('Ошибка при создании товара:', error);
