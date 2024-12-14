@@ -42,12 +42,16 @@ export default function AdminPage() {
       
       // Загружаем изображение, если оно выбрано
       if (selectedImage && token) {
-        const formData = new FormData();
-        formData.append('file', selectedImage);
+        const formDataEnd = new FormData();
+        formDataEnd.append('file', selectedImage);
+        formDataEnd.append('name', formData.name);
+        formDataEnd.append('price', formData.price);
+        formDataEnd.append('description', formData.description);
+        formDataEnd.append('category', formData.category);
 
         const imageResponse = await apiRequest<{ url: string }>('/api/v1/images/', {
           method: 'POST',
-          body: formData,
+          body: formDataEnd,
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -64,7 +68,6 @@ export default function AdminPage() {
       await apiRequest('/api/v1/goods/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({

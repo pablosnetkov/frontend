@@ -38,7 +38,6 @@ export async function apiRequest<T>(
     );
 
     const headers = new Headers({
-      'Content-Type': 'application/json',
       ...(options.headers as Record<string, string> || {})
     });
 
