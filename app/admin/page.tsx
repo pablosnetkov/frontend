@@ -8,7 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function AdminPage() {
   const router = useRouter();
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, token } = useAuth();
   const { showNotification } = useNotification();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -41,17 +41,23 @@ export default function AdminPage() {
       let imageUrl = '';
       
       // Загружаем изображение, если оно выбрано
-      if (selectedImage) {
+      if (selectedImage && token) {
         const formData = new FormData();
         formData.append('file', selectedImage);
 
         const imageResponse = await apiRequest<{ url: string }>('/api/v1/images/', {
           method: 'POST',
           body: formData,
-          headers: {} 
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
 
         imageUrl = imageResponse.url;
+      } else if (!token) {
+        showNotification('Необходима авторизация', 'error');
+        router.push('/auth');
+        return;
       }
 
       // Создаем товар
@@ -59,6 +65,7 @@ export default function AdminPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           ...formData,
