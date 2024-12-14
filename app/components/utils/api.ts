@@ -37,7 +37,9 @@ export async function apiRequest<T>(
       endpoint.startsWith(protectedEndpoint)
     );
 
+    const contentType = endpoint.endsWith('images/') ? 'multipart/form-data' : 'application/json';
     const headers = new Headers({
+      'Content-Type': contentType,
       ...(options.headers as Record<string, string> || {})
     });
 
