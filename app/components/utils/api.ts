@@ -37,11 +37,19 @@ export async function apiRequest<T>(
       endpoint.startsWith(protectedEndpoint)
     );
 
-    const contentType = endpoint.endsWith('images/') ? 'multipart/form-data' : 'application/json';
-    const headers = new Headers({
-      'Content-Type': contentType,
-      ...(options.headers as Record<string, string> || {})
-    });
+    let headers = new Headers();
+
+    if (endpoint.endsWith('images/')) {
+      headers = new Headers({
+        ...(options.headers as Record<string, string> || {})
+      });
+    } 
+    else {
+      headers = new Headers({
+        'Content-Type': 'application/json',
+        ...(options.headers as Record<string, string> || {})
+      });
+    }
 
     if (needsAuth) {
       const token = auth.getToken();
