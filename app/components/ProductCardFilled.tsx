@@ -12,6 +12,7 @@ interface Product {
   name: string;
   price: number;
   description?: string;
+  image?: string;
 }
 
 interface ProductCardFilledProps {
@@ -91,54 +92,58 @@ export default function ProductCardFilled({ product }: ProductCardFilledProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="h-64 bg-gray-200 rounded-lg flex items-center justify-center mb-6">
-        <span className="text-gray-400 text-6xl">
-          {product.name.charAt(0).toUpperCase()}
-        </span>
+    <div className="relative">
+      <div className="aspect-square overflow-hidden rounded-xl">
+        <img 
+          src={product.image}
+          alt={product.name}
+          className="object-cover w-full h-full"
+        />
       </div>
+      <div className="bg-white rounded-lg shadow-lg p-6">
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">{product.name}</h1>
-      
-      {product.description && (
-        <p className="text-gray-600 mb-6">{product.description}</p>
-      )}
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">{product.name}</h1>
+        
+        {product.description && (
+          <p className="text-gray-600 mb-6">{product.description}</p>
+        )}
 
-      <div className="flex items-center justify-between">
-        <span className="text-3xl font-bold text-gray-900">
-          {product.price.toLocaleString()} ₽
-        </span>
-        <div className="flex items-center space-x-2">
-          {isInBasket ? (
-            <QuantityControl
-              quantity={quantity}
-              onIncrease={handleAddToCart}
-              onDecrease={async () => {
-                if (!basketItemId) return;
-                try {
-                  await apiRequest(`/api/v1/me/basket-items/${basketItemId}/`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({
-                      quantity: quantity - 1
-                    })
-                  });
-                  setQuantity(prev => prev - 1);
-                } catch (err) {
-                  console.error('Ошибка при изменении количества:', err);
-                  showNotification('Ошибка при изменении количества', 'error');
-                }
-              }}
-              isLoading={false}
-            />
-          ) : (
-            <button 
-              onClick={handleAddToCart}
-              className="px-6 py-3 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors flex items-center gap-2"
-            >
-              <span>🛒</span>
-              В корзину
-            </button>
-          )}
+        <div className="flex items-center justify-between">
+          <span className="text-3xl font-bold text-gray-900">
+            {product.price.toLocaleString()} ₽
+          </span>
+          <div className="flex items-center space-x-2">
+            {isInBasket ? (
+              <QuantityControl
+                quantity={quantity}
+                onIncrease={handleAddToCart}
+                onDecrease={async () => {
+                  if (!basketItemId) return;
+                  try {
+                    await apiRequest(`/api/v1/me/basket-items/${basketItemId}/`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({
+                        quantity: quantity - 1
+                      })
+                    });
+                    setQuantity(prev => prev - 1);
+                  } catch (err) {
+                    console.error('Ошибка при изменении количества:', err);
+                    showNotification('Ошибка при изменении количества', 'error');
+                  }
+                }}
+                isLoading={false}
+              />
+            ) : (
+              <button 
+                onClick={handleAddToCart}
+                className="px-6 py-3 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors flex items-center gap-2"
+              >
+                <span>🛒</span>
+                В корзину
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
