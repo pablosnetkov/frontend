@@ -97,14 +97,14 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div className="group cursor-pointer">
-      <div className="aspect-square overflow-hidden rounded-xl relative">
-        <img 
-          src={product.image}
-          alt={product.name}
-          className="object-cover w-full h-full transition duration-500 group-hover:scale-110"
-        />
-      </div>
       <Link href={`/product/${product.id}`}>
+        <div className="aspect-square overflow-hidden rounded-xl relative">
+          <img 
+            src={product.image}
+            alt={product.name}
+            className="object-cover w-full h-full transition duration-500 group-hover:scale-110"
+          />
+        </div>
         <div className="cursor-pointer">
           <div className="p-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-gray-600 transition-colors">

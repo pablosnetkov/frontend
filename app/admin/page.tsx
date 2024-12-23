@@ -2,24 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiRequest } from '../components/utils/api';
-import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../hooks/useAuth';
+import { useNotification } from '../contexts/NotificationContext';
+import AddProduct from './components/AddProduct';
+import ProductManager from './components/ProductManager';
 
 export default function AdminPage() {
   const router = useRouter();
   const { isAuthenticated, loading, token } = useAuth();
   const { showNotification } = useNotification();
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    price: '',
-    description: '',
-    category: '',
-  });
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [activeTab, setActiveTab] = useState<'manage' | 'add'>('manage');
 
-  // Проверяем авторизацию
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/auth');
@@ -27,165 +20,53 @@ export default function AdminPage() {
     }
   }, [isAuthenticated, loading, router, showNotification]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedImage(e.target.files[0]);
-    }
+  const handleManageClick = () => {
+    setActiveTab('manage');
+    router.push('/admin');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      let imageUrl = '';
-      
-      // Загружаем изображение, если оно выбрано
-      if (selectedImage && token) {
-        const formDataEnd = new FormData();
-        formDataEnd.append('file', selectedImage);
-        formDataEnd.append('name', formData.name);
-        formDataEnd.append('price', formData.price);
-        formDataEnd.append('description', formData.description);
-        formDataEnd.append('category', formData.category);
-
-        const imageResponse = await apiRequest<{ url: string }>('/api/v1/images/', {
-          method: 'POST',
-          body: formDataEnd,
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        imageUrl = imageResponse.url;
-      } else if (!token) {
-        showNotification('Необходима авторизация', 'error');
-        router.push('/auth');
-        return;
-      }
-
-      // Создаем товар
-      await apiRequest('/api/v1/goods/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          price: Number(formData.price),
-          category: Number(formData.category),
-          image: imageUrl,
-        })
-      });
-
-      showNotification('Товар успешно добавлен', 'success');
-      
-      // Очищаем форму
-      setFormData({
-        name: '',
-        price: '',
-        description: '',
-        category: '',
-      });
-      setSelectedImage(null);
-      
-      router.push('/categories');
-    } catch (error) {
-      console.error('Ошибка при создании товара:', error);
-      showNotification('Ошибка при создании товара', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Показываем загрузку при проверке авторизации
   if (loading) {
     return <div className="text-center mt-8">Загрузка...</div>;
   }
 
-  // Не показываем форму неавторизованным пользователям
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !token) {
     return null;
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">Добавление товара</h1>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Изображение товара
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+    <div>
+      <div className="border-b mb-6">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8">
+            <button
+              onClick={handleManageClick}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'manage'
+                  ? 'border-gray-900 text-gray-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Управление товарами
+            </button>
+            <button
+              onClick={() => setActiveTab('add')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'add'
+                  ? 'border-gray-900 text-gray-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Добавить товар
+            </button>
+          </div>
+        </nav>
+      </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Название товара
-          </label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full p-2 border border-gray-300 rounded-md"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Цена
-          </label>
-          <input
-            type="number"
-            value={formData.price}
-            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-            className="w-full p-2 border border-gray-300 rounded-md"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Категория
-          </label>
-          <input
-            type="number"
-            value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            className="w-full p-2 border border-gray-300 rounded-md"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Описание
-          </label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full p-2 border border-gray-300 rounded-md"
-            rows={4}
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`w-full px-4 py-2 bg-gray-900 text-white rounded-md 
-            ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-700'} 
-            transition-colors`}
-        >
-          {isLoading ? 'Создание...' : 'Создать товар'}
-        </button>
-      </form>
+      {activeTab === 'manage' ? (
+        <ProductManager token={token} />
+      ) : (
+        <AddProduct token={token} />
+      )}
     </div>
   );
 } 
