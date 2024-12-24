@@ -11,6 +11,8 @@ interface Category {
     parent_category: number | null;
 }
 
+const placeholderImage = '/images/placeholder.jpg';
+
 export default function ProductList({ token }: { token: string }) {
     const [categories, setCategories] = useState<Category[]>([])
     const [editingCategory, setEditingCategory] = useState<number | null>(null)
