@@ -6,12 +6,14 @@ import { useAuth } from '../hooks/useAuth';
 import { useNotification } from '../contexts/NotificationContext';
 import AddProduct from './components/AddProduct';
 import ProductManager from './components/ProductManager';
+import AddCategory from './components/AddCategory';
+import ProductList from './components/ProductList';
 
 export default function AdminPage() {
   const router = useRouter();
   const { isAuthenticated, loading, token } = useAuth();
   const { showNotification } = useNotification();
-  const [activeTab, setActiveTab] = useState<'manage' | 'add'>('manage');
+  const [activeTab, setActiveTab] = useState('products');
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -19,11 +21,6 @@ export default function AdminPage() {
       showNotification('Необходима авторизация', 'error');
     }
   }, [isAuthenticated, loading, router, showNotification]);
-
-  const handleManageClick = () => {
-    setActiveTab('manage');
-    router.push('/admin');
-  };
 
   if (loading) {
     return <div className="text-center mt-8">Загрузка...</div>;
@@ -34,39 +31,38 @@ export default function AdminPage() {
   }
 
   return (
-    <div>
-      <div className="border-b mb-6">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            <button
-              onClick={handleManageClick}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'manage'
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Управление товарами
-            </button>
-            <button
-              onClick={() => setActiveTab('add')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'add'
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Добавить товар
-            </button>
-          </div>
-        </nav>
+    <div className="container mx-auto p-4">
+      <div className="mb-4">
+        <button
+          className={`mr-2 px-4 py-2 ${activeTab === 'products' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          onClick={() => setActiveTab('products')}
+        >
+          Управление товарами
+        </button>
+        <button
+          className={`mr-2 px-4 py-2 ${activeTab === 'categories' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          onClick={() => setActiveTab('categories')}
+        >
+          Управление категориями
+        </button>
+        <button
+          className={`mr-2 px-4 py-2 ${activeTab === 'add-product' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          onClick={() => setActiveTab('add-product')}
+        >
+          Добавить товар
+        </button>
+        <button
+          className={`px-4 py-2 ${activeTab === 'add-category' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          onClick={() => setActiveTab('add-category')}
+        >
+          Добавить категорию
+        </button>
       </div>
 
-      {activeTab === 'manage' ? (
-        <ProductManager token={token} />
-      ) : (
-        <AddProduct token={token} />
-      )}
+      {activeTab === 'products' && <ProductManager token={token} />}
+      {activeTab === 'categories' && <ProductList token={token} />}
+      {activeTab === 'add-product' && <AddProduct token={token} />}
+      {activeTab === 'add-category' && <AddCategory token={token} />}
     </div>
   );
 } 
