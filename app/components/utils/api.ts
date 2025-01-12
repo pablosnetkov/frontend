@@ -2,7 +2,7 @@
 
 import { auth } from '../../utils/auth';
 
-const API_BASE_URL = 'http://backend:8000';
+const API_BASE_URL = 'http://localhost:8080';
 
 // Список защищенных эндпоинтов, требующих авторизации
 const PROTECTED_ENDPOINTS = [
