@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { apiRequest } from '../../components/utils/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../hooks/useAuth';
-import ConfirmDialog from '../../components/ConfirmDialog';
 
 interface ApiResponse<T> {
   results: T[];
@@ -18,7 +17,13 @@ interface Checkout {
   payment_total: number;
   payment_method: number;
   delivery_method: number;
-  recipient: number; // ID получателя
+  first_name: string;
+  last_name: string;
+  middle_name: string;
+  phone: string;
+  email: string;
+  address: string;
+  zip_code: string;
   basket: number;
 }
 
@@ -60,8 +65,6 @@ interface CheckoutWithDetails {
 export default function CheckoutManager({ token }: { token: string }) {
   const [checkouts, setCheckouts] = useState<CheckoutWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [checkoutToDelete, setCheckoutToDelete] = useState<number | null>(null);
   const { showNotification } = useNotification();
 
   useEffect(() => {
@@ -78,28 +81,37 @@ export default function CheckoutManager({ token }: { token: string }) {
         // Получаем детальную информацию для каждого заказа
         const checkoutsWithDetails = await Promise.all(
           checkoutsResponse.results.map(async (checkout) => {
-            const [paymentMethod, deliveryMethod, recipient] = await Promise.all([
-              apiRequest<PaymentMethod>(`/api/v1/payment-methods/${checkout.payment_method}/`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              }),
-              apiRequest<DeliveryMethod>(`/api/v1/delivery-methods/${checkout.delivery_method}/`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              }),
-              apiRequest<Recipient>(`/api/v1/recipients/${checkout.recipient}/`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              })
-            ]);
+            try {
+              const [paymentMethod, deliveryMethod, recipient] = await Promise.all([
+                apiRequest<PaymentMethod>(`/api/v1/payment-methods/${checkout.payment_method}/`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                apiRequest<DeliveryMethod>(`/api/v1/delivery-methods/${checkout.delivery_method}/`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                apiRequest<Recipient>(`/api/v1/recipients/${checkout.id}/`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                })
+              ]);
 
-            return {
-              ...checkout,
-              payment_method: paymentMethod,
-              delivery_method: deliveryMethod,
-              recipient: recipient
-            };
+              return {
+                ...checkout,
+                payment_method: paymentMethod,
+                delivery_method: deliveryMethod,
+                recipient: recipient
+              };
+            } catch (error) {
+              console.error(`Ошибка при загрузке деталей заказа #${checkout.id}:`, error);
+              return null;
+            }
           })
         );
 
-        setCheckouts(checkoutsWithDetails);
+        // Фильтруем заказы, убирая те, где произошла ошибка
+        const validCheckouts = checkoutsWithDetails
+          .filter((checkout): checkout is NonNullable<typeof checkout> => checkout !== null);
+        
+        setCheckouts(validCheckouts);
       } catch (error) {
         console.error('Ошибка при загрузке заказов:', error);
         showNotification('Ошибка при загрузке заказов', 'error');
@@ -110,33 +122,6 @@ export default function CheckoutManager({ token }: { token: string }) {
 
     fetchCheckoutDetails();
   }, [token, showNotification]);
-
-  const handleDeleteClick = (checkoutId: number) => {
-    setCheckoutToDelete(checkoutId);
-    setShowConfirmDelete(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!checkoutToDelete) return;
-
-    try {
-      await apiRequest(`/api/v1/checkouts/${checkoutToDelete}/`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      setCheckouts(prev => prev.filter(checkout => checkout.id !== checkoutToDelete));
-      showNotification('Заказ успешно удален', 'success');
-    } catch (error) {
-      console.error('Ошибка при удалении заказа:', error);
-      showNotification('Ошибка при удалении заказа', 'error');
-    } finally {
-      setShowConfirmDelete(false);
-      setCheckoutToDelete(null);
-    }
-  };
 
   if (loading) {
     return <div className="text-center py-4">Загрузка...</div>;
@@ -174,26 +159,9 @@ export default function CheckoutManager({ token }: { token: string }) {
               <p>Адрес: {checkout.recipient.address}</p>
               <p>Индекс: {checkout.recipient.zip_code}</p>
             </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={() => handleDeleteClick(checkout.id)}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-              >
-                Удалить заказ
-              </button>
-            </div>
           </div>
         ))}
       </div>
-
-      <ConfirmDialog
-        isOpen={showConfirmDelete}
-        onClose={() => setShowConfirmDelete(false)}
-        onConfirm={handleDeleteConfirm}
-        title="Удаление заказа"
-        message="Вы уверены, что хотите удалить этот заказ? Это действие нельзя отменить."
-      />
     </div>
   );
 } 

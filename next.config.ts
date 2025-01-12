@@ -10,7 +10,7 @@ module.exports = {
     return [
       {
         source: '/api/goods/:path*', // Локальный маршрут в Next.js
-        destination: 'http://localhost:8000/api/v1/goods/:path*', // Реальный API
+        destination: 'http://backend:8000/api/v1/goods/:path*', // Реальный API
       },
     ];
   },
