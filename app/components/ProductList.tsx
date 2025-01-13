@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import ProductCard from './ProductCard';
 import { apiRequest } from './utils/api';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import SortSelect from './SortSelect';
 
 interface ProductListProps {
   categoryId?: number;
@@ -29,8 +30,10 @@ export default function ProductList({ categoryId }: ProductListProps) {
   const [nextPage, setNextPage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState('');
   
   const observerTarget = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const fetchProducts = async (url?: string) => {
     try {
@@ -38,35 +41,33 @@ export default function ProductList({ categoryId }: ProductListProps) {
       let endpoint;
       
       if (url) {
+        // Для следующих страниц используем URL как есть, так как он уже содержит все параметры
         endpoint = url;
       } else {
-        const baseEndpoint = '/api/v1/goods/';
+        // Для первой страницы формируем URL с параметрами
         const params = new URLSearchParams();
-        
         if (categoryId) {
           params.append('category', categoryId.toString());
         }
-        
-        endpoint = `${baseEndpoint}?${params.toString()}`;
+        if (sortOrder) {
+          params.append('ordering', sortOrder);
+        }
+        endpoint = `/api/v1/goods/?${params.toString()}`;
       }
       
       const data = await apiRequest<ApiResponse>(endpoint);
       
-      const filteredResults = categoryId
-        ? data.results.filter(product => product.category === categoryId)
-        : data.results;
-      
       if (url) {
-        setProducts(prev => [...prev, ...filteredResults]);
+        setProducts(prev => [...prev, ...data.results]);
       } else {
-        setProducts(filteredResults);
+        setProducts(data.results);
       }
       
-      setNextPage(filteredResults.length > 0 ? data.next : null);
+      setNextPage(data.next);
       setError(null);
     } catch (err) {
-      setError('Ошибка загрузки товаров');
       console.error('Ошибка получения товаров:', err);
+      setError('Ошибка загрузки товаров');
     } finally {
       setLoading(false);
     }
@@ -95,21 +96,35 @@ export default function ProductList({ categoryId }: ProductListProps) {
     return () => observer.disconnect();
   }, [handleObserver]);
 
-  // Сбрасываем состояние при изменении категории
+  // Сбрасываем состояние при изменении категории или сортировки
   useEffect(() => {
     setProducts([]);
     setNextPage(null);
     fetchProducts();
-  }, [categoryId]);
+  }, [categoryId, sortOrder]);
+
+  // Обработчик клавиши Escape
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        router.push('/categories');
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [router]);
 
   return (
     <div>
       <div className="mb-6">
-        <Link href="/categories">
-          <button className="px-6 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors font-medium flex items-center gap-2">
-            <span>←</span> Назад к категориям
-          </button>
-        </Link>
+        <SortSelect
+          value={sortOrder}
+          onChange={(value) => setSortOrder(value)}
+        />
       </div>
 
       {error ? (

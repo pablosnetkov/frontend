@@ -30,6 +30,21 @@ export default function AddProduct() {
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
+  // Обработчик клавиши Escape
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        router.push('/admin');
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [router]);
+
   useEffect(() => {
     if (!isAuthenticated || !userInfo?.staff) {
       router.push('/');

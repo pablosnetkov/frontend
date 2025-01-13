@@ -4,7 +4,7 @@ import Link from 'next/link';
 import ProductCardFilled from '../../components/ProductCardFilled';
 import { apiRequest } from '../../components/utils/api';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 interface Product {
   id: number;
@@ -16,6 +16,7 @@ interface Product {
 
 export default function ProductPage() {
   const params = useParams();
+  const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +46,21 @@ export default function ProductPage() {
 
     fetchProduct();
   }, [params?.id]);
+
+  // Обработчик клавиши Escape
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        router.back();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [router]);
 
   if (loading) {
     return <div className="text-center mt-8">Загрузка...</div>;

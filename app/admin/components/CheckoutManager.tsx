@@ -103,7 +103,8 @@ export default function CheckoutManager({ token }: { token: string }) {
 
         // Фильтруем заказы, убирая те, где произошла ошибка
         const validCheckouts = checkoutsWithDetails
-          .filter((checkout): checkout is NonNullable<typeof checkout> => checkout !== null);
+          .filter((checkout): checkout is NonNullable<typeof checkout> => checkout !== null)
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
         setCheckouts(validCheckouts);
       } catch (error) {

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
 import { useUserInfo } from '../hooks/useUserInfo';
 import { useBasket } from '../contexts/BasketContext';
+import SearchBar from './SearchBar';
 
 export default function Header() {
   const { isAuthenticated } = useAuth();
@@ -13,12 +14,14 @@ export default function Header() {
   return (
     <header className="bg-white shadow-md">
       <div className="container mx-auto px-4 py-4">
-        <nav className="flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-gray-800">
-            Магазин
+        <nav className="flex items-center justify-between gap-4">
+          <Link href="/" className="text-xl font-bold text-gray-800 whitespace-nowrap">
+            JUBAMI
           </Link>
 
-          <div className="flex items-center space-x-6">
+          <SearchBar />
+
+          <div className="flex items-center space-x-6 whitespace-nowrap">
             <Link href="/categories" className="text-gray-600 hover:text-gray-900">
               Каталог
             </Link>

@@ -188,6 +188,16 @@ export default function CheckoutForm({ basketItems, onSuccess, onCancel }: Check
       return;
     }
 
+    if (!selectedPaymentMethod) {
+      showNotification('Пожалуйста, выберите способ оплаты', 'error');
+      return;
+    }
+
+    if (!selectedDeliveryMethod) {
+      showNotification('Пожалуйста, выберите способ доставки', 'error');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -231,6 +241,21 @@ export default function CheckoutForm({ basketItems, onSuccess, onCancel }: Check
       setLoading(false);
     }
   };
+
+  // Обработчик клавиши Escape
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onCancel();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [onCancel]);
 
   return (
     <div 

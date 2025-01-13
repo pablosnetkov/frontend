@@ -42,7 +42,7 @@ export default function ProductManager({ token }: { token: string }) {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
-
+  
   // Состояния для форм
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -331,6 +331,36 @@ export default function ProductManager({ token }: { token: string }) {
     setIsAddingProduct(true);
   };
 
+  // Обработчик клавиши Escape
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (isAddingProduct || isAddingCategory) {
+          // Если открыта модалка, закрываем её
+          if (isAddingProduct) {
+            setIsAddingProduct(false);
+            setIsEditingProduct(null);
+            setNewProduct({ name: '', price: '', description: '', category: '' });
+          } else {
+            setIsAddingCategory(false);
+            setIsEditingCategory(null);
+            setNewCategory({ name: '', description: '', parent_category: '' });
+          }
+          setSelectedImage(null);
+        } else if (selectedCategory) {
+          // Если открыта категория, возвращаемся к списку категорий
+    setSelectedCategory(null);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isAddingProduct, isAddingCategory, selectedCategory]);
+
   return (
     <div className="space-y-6">
       <ScrollToTop />
@@ -453,7 +483,7 @@ export default function ProductManager({ token }: { token: string }) {
         <>
           <div className="flex justify-between items-center">
             <div>
-              <button
+                  <button
                 onClick={() => setSelectedCategory(null)}
                 className="mb-4 text-blue-500 hover:text-blue-700"
               >
@@ -563,7 +593,7 @@ export default function ProductManager({ token }: { token: string }) {
               </div>
             ))}
           </div>
-
+          
           <div 
             ref={observerTarget} 
             className="h-10 flex justify-center items-center"

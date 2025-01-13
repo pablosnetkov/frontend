@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ProductCard from './components/ProductCard';
 import { apiRequest } from './components/utils/api';
@@ -7,103 +10,74 @@ interface Product {
   name: string;
   price: number;
   description?: string;
+  image?: string;
+  category: number;
 }
 
-async function getRandomProducts(): Promise<Product[]> {
-  try {
-    const response = await apiRequest<{ results: Product[] }>('/api/v1/goods/');
-    const products = response.results;
-    
-    // Получаем 3 случайных товара
-    return products
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3);
-  } catch (error) {
-    console.error('Ошибка при загрузке товаров:', error);
-    return [];
-  }
+interface ApiResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Product[];
 }
 
-export default async function Home() {
-  const randomProducts = await getRandomProducts();
+export default function Home() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        console.log('Fetching latest products...');
+        const response = await apiRequest<ApiResponse>('/api/v1/goods/?ordering=id');
+        console.log('API Response:', response);
+        
+        if (!response.results || !Array.isArray(response.results)) {
+          console.error('Invalid response format:', response);
+          return;
+        }
+
+        // Берем первые 8 товаров
+        const latestProducts = response.results.slice(0, 8);
+        console.log('Latest products:', latestProducts);
+        setProducts(latestProducts);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   return (
-    <div className="space-y-12">
-      {/* Hero секция */}
-      <section className="bg-gray-900 text-white py-16 rounded-2xl">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="md:w-1/2 mb-8 md:mb-0">
-              <h1 className="text-6xl md:text-7xl font-bold mb-4 text-white">
-                jubami.com
-              </h1>
-              <p className="text-lg text-gray-300 mb-6">
-                Откройте для себя широкий ассортимент качественных товаров по выгодным ценам
-              </p>
-              <Link 
-                href="/categories" 
-                className="inline-block bg-white text-gray-900 px-8 py-3 rounded-md font-medium hover:bg-gray-100 transition-colors"
-              >
-                Смотреть каталог
-              </Link>
-            </div>
-            <div className="md:w-1/2">
-              <div className="bg-gray-800 h-72 rounded-lg flex items-center justify-center">
-                <span className="text-gray-500 text-6xl">Shop</span>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-16">
+      {/* Hero section */}
+      <section className="bg-gray-900 text-white py-32 rounded-2xl flex items-center justify-center">
+        <Link 
+          href="/categories" 
+          className="text-6xl font-light tracking-wider hover:tracking-widest transition-all duration-300"
+        >
+          JUBAMI
+        </Link>
       </section>
 
-      {/* Популярные товары */}
+      {/* Latest products */}
       <section className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold mb-8">Популярные товары</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {randomProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
-
-      {/* Преимущества */}
-      <section className="bg-gray-50 py-12">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-8 text-center">Наши преимущества</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[
-              { title: 'Быстрая доставка', icon: '🚚' },
-              { title: 'Гарантия качества', icon: '✨' },
-              { title: 'Большой выбор', icon: '📦' },
-              { title: 'Лучшие цены', icon: '💰' },
-            ].map((item, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg text-center">
-                <div className="text-4xl mb-4">{item.icon}</div>
-                <h3 className="text-lg font-semibold">{item.title}</h3>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Специальные предложения */}
-      <section className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold mb-8">Специальные предложения</h2>
-        <div className="bg-gray-900 text-white rounded-lg p-8">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div>
-              <h3 className="text-2xl font-bold mb-2">Скидка 20% на первый заказ</h3>
-              <p className="text-gray-300 mb-4">Используйте промокод: WELCOME20</p>
-              <button className="bg-white text-gray-900 px-6 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors">
-                Получить скидку
-              </button>
+        <h2 className="text-3xl font-light mb-12 text-center">Последние товары</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {loading ? (
+            <div className="col-span-full text-center py-12">Загрузка товаров...</div>
+          ) : products.length > 0 ? (
+            products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12 text-gray-500">
+              Товары не найдены
             </div>
-            <div className="mt-6 md:mt-0">
-              <div className="bg-gray-800 w-48 h-48 rounded-full flex items-center justify-center">
-                <span className="text-gray-500 text-4xl">20%</span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </section>
     </div>
