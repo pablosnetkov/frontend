@@ -17,13 +17,7 @@ interface Checkout {
   payment_total: number;
   payment_method: number;
   delivery_method: number;
-  first_name: string;
-  last_name: string;
-  middle_name: string;
-  phone: string;
-  email: string;
-  address: string;
-  zip_code: string;
+  recipient: number;
   basket: number;
 }
 
@@ -89,7 +83,7 @@ export default function CheckoutManager({ token }: { token: string }) {
                 apiRequest<DeliveryMethod>(`/api/v1/delivery-methods/${checkout.delivery_method}/`, {
                   headers: { 'Authorization': `Bearer ${token}` }
                 }),
-                apiRequest<Recipient>(`/api/v1/recipients/${checkout.id}/`, {
+                apiRequest<Recipient>(`/api/v1/recipients/${checkout.recipient}/`, {
                   headers: { 'Authorization': `Bearer ${token}` }
                 })
               ]);

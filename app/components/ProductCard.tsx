@@ -14,6 +14,7 @@ interface Product {
   price: number;
   description?: string;
   image?: string;
+  discount?: number;
 }
 
 interface ProductCardProps {
@@ -96,30 +97,48 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="group cursor-pointer">
+    <div className="group relative bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
       <Link href={`/product/${product.id}`}>
-        <div className="aspect-square overflow-hidden rounded-xl relative">
+        <div className="aspect-square overflow-hidden rounded-t-xl relative">
           <img 
-            src={product.image}
+            src={product.image || '/placeholder.jpg'}
             alt={product.name}
-            className="object-cover w-full h-full transition duration-500 group-hover:scale-110"
+            className="object-cover w-full h-full transform transition-transform duration-500 group-hover:scale-110"
           />
+          {(product.discount ?? 0) > 0 && (
+            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-medium">
+              -{product.discount}%
+            </div>
+          )}
         </div>
-        <div className="cursor-pointer">
-          <div className="p-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-gray-600 transition-colors">
-              {product.name}
-            </h3>
+        <div className="p-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+            {product.name}
+          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              {(product.discount ?? 0) > 0 ? (
+                <>
+                  <span className="text-2xl font-bold text-gray-900">
+                    {(product.price * (1 - (product.discount ?? 0) / 100)).toFixed(0)} ₽
+                  </span>
+                  <span className="ml-2 text-sm text-gray-500 line-through">
+                    {product.price.toLocaleString()} ₽
+                  </span>
+                </>
+              ) : (
+                <span className="text-2xl font-bold text-gray-900">
+                  {product.price.toLocaleString()} ₽
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </Link>
 
-      <div className="px-4 pb-4 flex justify-between items-center">
-        <span className="text-2xl font-bold text-gray-900">
-          {product.price.toLocaleString()} ₽
-        </span>
-        <div className="flex items-center space-x-2">
-          {isInBasket ? (
+      <div className="px-4 pb-4">
+        {isInBasket ? (
+          <div className="flex items-center justify-between">
             <QuantityControl
               quantity={quantity}
               onIncrease={handleAddToCart}
@@ -140,16 +159,20 @@ export default function ProductCard({ product }: ProductCardProps) {
               }}
               isLoading={false}
             />
-          ) : (
-            <button 
-              onClick={handleAddToCart}
-              className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors flex items-center gap-2"
-            >
-              <span>🛒</span>
-              В корзину
-            </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <button 
+            onClick={handleAddToCart}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
+              transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 
+              focus:ring-blue-500 focus:ring-offset-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            В корзину
+          </button>
+        )}
       </div>
     </div>
   );

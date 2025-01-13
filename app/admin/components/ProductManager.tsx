@@ -3,9 +3,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiRequest } from '../../components/utils/api';
 import { useNotification } from '../../contexts/NotificationContext';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import EditProductModal from './EditProductModal';
+import Modal from '../../components/Modal';
+import Button from '../../components/Button';
+import Input from '../../components/Input';
+import ScrollToTop from '../../components/ScrollToTop';
+import LoadingSpinner from '../../components/LoadingSpinner';
+
+interface Category {
+  id: number;
+  name: string;
+  description: string;
+  image: string;
+  parent_category: number | null;
+}
 
 interface Product {
   id: number;
@@ -16,95 +26,82 @@ interface Product {
   category: number;
 }
 
-interface Category {
-  id: number;
-  name: string;
-}
-
-interface ApiResponse {
+interface ApiResponse<T> {
   count: number;
   next: string | null;
   previous: string | null;
-  results: Product[];
+  results: T[];
 }
 
 export default function ProductManager({ token }: { token: string }) {
-  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [nextPage, setNextPage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
-  
+
+  // Состояния для форм
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [isEditingCategory, setIsEditingCategory] = useState<Category | null>(null);
+  const [isEditingProduct, setIsEditingProduct] = useState<Product | null>(null);
+  const [newCategory, setNewCategory] = useState({ name: '', description: '', parent_category: '' });
+  const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '', category: '' });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+
+  const [nextPage, setNextPage] = useState<string | null>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
 
-  const router = useRouter();
-
-  const fetchProducts = async (url?: string) => {
+  const fetchCategories = async () => {
     try {
-      setLoading(true);
+      const response = await apiRequest<ApiResponse<Category>>('/api/v1/good-categories/');
+      setCategories(response.results || []);
+    } catch (error) {
+      console.error('Ошибка при загрузке категорий:', error);
+      showNotification('Ошибка при загрузке категорий', 'error');
+    }
+  };
+
+  const fetchProducts = async (categoryId: number, url?: string) => {
+    try {
       let endpoint;
       
       if (url) {
         endpoint = url;
       } else {
-        const baseEndpoint = '/api/v1/goods/';
-        const params = new URLSearchParams();
-        
-        if (selectedCategory) {
-          params.append('category', selectedCategory.toString());
-        }
-        
-        endpoint = `${baseEndpoint}?${params.toString()}`;
+        endpoint = `/api/v1/goods/?category=${categoryId}`;
       }
       
-      const data = await apiRequest<ApiResponse>(endpoint);
-      
-      const filteredResults = selectedCategory
-        ? data.results.filter(product => product.category === selectedCategory)
-        : data.results;
+      const response = await apiRequest<ApiResponse<Product>>(endpoint, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (url) {
-        setProducts(prev => [...prev, ...filteredResults]);
+        setProducts(prev => [...prev, ...response.results]);
       } else {
-        setProducts(filteredResults);
+        setProducts(response.results);
       }
       
-      setNextPage(filteredResults.length > 0 ? data.next : null);
-      setError(null);
-    } catch (err) {
-      setError('Ошибка загрузки товаров');
-      console.error('Ошибка получения товаров:', err);
+      setNextPage(response.next);
+    } catch (error) {
+      console.error('Ошибка при загрузке товаров:', error);
+      showNotification('Ошибка при загрузке товаров', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // Получаем категории при монтировании
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const categoriesData = await apiRequest<{ results: Category[] }>('/api/v1/good-categories/');
-        setCategories(categoriesData.results);
-      } catch (error) {
-        console.error('Ошибка при загрузке категорий:', error);
-        showNotification('Ошибка при загрузке категорий', 'error');
-      }
-    };
-
-    fetchCategories();
-  }, [showNotification]);
-
-  // Функция-колбэк для Intersection Observer
+  // Обработчик для Intersection Observer
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
     const target = entries[0];
-    if (target.isIntersecting && nextPage && !loading) {
-      fetchProducts(nextPage);
+    if (target.isIntersecting && nextPage && !loading && selectedCategory) {
+      fetchProducts(selectedCategory, nextPage);
     }
-  }, [nextPage, loading]);
+  }, [nextPage, loading, selectedCategory]);
 
-  // Устанавливаем observer при монтировании компонента
+  // Установка observer
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
       root: null,
@@ -119,184 +116,436 @@ export default function ProductManager({ token }: { token: string }) {
     return () => observer.disconnect();
   }, [handleObserver]);
 
-  // Сбрасываем состояние при изменении категории
+  // При смене категории сбрасываем состояние и загружаем новые товары
   useEffect(() => {
-    setProducts([]);
-    setNextPage(null);
     if (selectedCategory) {
-      fetchProducts();
+      setProducts([]);
+      setNextPage(null);
+      setLoading(true);
+      fetchProducts(selectedCategory);
     }
   }, [selectedCategory]);
 
-  const handleDelete = async (productId: number) => {
-    if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  // Обработчики для категорий
+  const handleCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let imageUrl = '';
+      
+      if (selectedImage) {
+        const formDataImage = new FormData();
+        formDataImage.append('file', selectedImage);
+        const imageResponse = await apiRequest<{ url: string }>('/api/v1/images/', {
+          method: 'POST',
+          body: formDataImage,
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        imageUrl = imageResponse.url;
+      }
+
+      if (isEditingCategory) {
+        await apiRequest(`/api/v1/good-categories/${isEditingCategory.id}/`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...newCategory,
+            image: imageUrl || isEditingCategory.image,
+            parent_category: newCategory.parent_category ? Number(newCategory.parent_category) : null
+          })
+        });
+        showNotification('Категория успешно обновлена', 'success');
+      } else {
+        await apiRequest('/api/v1/good-categories/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...newCategory,
+            image: imageUrl,
+            parent_category: newCategory.parent_category ? Number(newCategory.parent_category) : null
+          })
+        });
+        showNotification('Категория успешно создана', 'success');
+      }
+
+      setIsAddingCategory(false);
+      setIsEditingCategory(null);
+      setNewCategory({ name: '', description: '', parent_category: '' });
+      setSelectedImage(null);
+      fetchCategories();
+    } catch (error) {
+      console.error('Ошибка при сохранении категории:', error);
+      showNotification('Ошибка при сохранении категории', 'error');
+    }
+  };
+
+  // Обработчики для товаров
+  const handleProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let imageUrl = '';
+      
+      if (selectedImage) {
+        const formDataImage = new FormData();
+        formDataImage.append('file', selectedImage);
+        const imageResponse = await apiRequest<{ url: string }>('/api/v1/images/', {
+          method: 'POST',
+          body: formDataImage,
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        imageUrl = imageResponse.url;
+      }
+
+      if (isEditingProduct) {
+        await apiRequest(`/api/v1/goods/${isEditingProduct.id}/`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...newProduct,
+            price: Number(newProduct.price),
+            image: imageUrl || isEditingProduct.image,
+            category: selectedCategory
+          })
+        });
+        showNotification('Товар успешно обновлен', 'success');
+      } else {
+        await apiRequest('/api/v1/goods/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...newProduct,
+            price: Number(newProduct.price),
+            image: imageUrl,
+            category: selectedCategory
+          })
+        });
+        showNotification('Товар успешно создан', 'success');
+      }
+
+      setIsAddingProduct(false);
+      setIsEditingProduct(null);
+      setNewProduct({ name: '', price: '', description: '', category: '' });
+      setSelectedImage(null);
+      if (selectedCategory) {
+        fetchProducts(selectedCategory);
+      }
+    } catch (error) {
+      console.error('Ошибка при сохранении товара:', error);
+      showNotification('Ошибка при сохранении товара', 'error');
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    if (!window.confirm('Вы уверены, что хотите удалить эту категорию?')) {
+      return;
+    }
 
     try {
-      await apiRequest(`/api/v1/goods/${productId}/`, {
+      await apiRequest(`/api/v1/good-categories/${id}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+      showNotification('Категория успешно удалена', 'success');
+      fetchCategories();
+    } catch (error) {
+      console.error('Ошибка при удалении категории:', error);
+      showNotification('Ошибка при удалении категории', 'error');
+    }
+  };
 
-      setProducts(products.filter(p => p.id !== productId));
+  const handleDeleteProduct = async (id: number) => {
+    if (!window.confirm('Вы уверены, что хотите удалить этот товар?')) {
+      return;
+    }
+
+    try {
+      await apiRequest(`/api/v1/goods/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       showNotification('Товар успешно удален', 'success');
+      if (selectedCategory) {
+        fetchProducts(selectedCategory);
+      }
     } catch (error) {
       console.error('Ошибка при удалении товара:', error);
       showNotification('Ошибка при удалении товара', 'error');
     }
   };
 
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product);
-  };
-
-  const handleSaveEdit = (updatedProduct: Product) => {
-    if (updatedProduct.category !== selectedCategory) {
-      setProducts(products.filter(p => p.id !== updatedProduct.id));
-    } else {
-      setProducts(products.map(p => 
-        p.id === updatedProduct.id 
-          ? { ...updatedProduct, image: updatedProduct.image }
-          : p
-      ));
-    }
-  };
-
-  // Добавляем функцию для прокрутки вверх
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
+  const startEditCategory = (category: Category) => {
+    setIsEditingCategory(category);
+    setNewCategory({
+      name: category.name,
+      description: category.description,
+      parent_category: category.parent_category?.toString() || ''
     });
+    setIsAddingCategory(true);
   };
 
-  const handleBackToMain = () => {
-    setSelectedCategory(null);
-    router.push('/admin');
+  const startEditProduct = (product: Product) => {
+    setIsEditingProduct(product);
+    setNewProduct({
+      name: product.name,
+      price: product.price.toString(),
+      description: product.description,
+      category: product.category.toString()
+    });
+    setIsAddingProduct(true);
   };
-
-  if (!selectedCategory) {
-    return (
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-8">Выберите категорию</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map(category => (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
-              className="p-6 border rounded-lg hover:bg-gray-50 transition-colors text-left"
-            >
-              <h2 className="text-xl font-semibold mb-2">{category.name}</h2>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const currentCategory = categories.find(c => c.id === selectedCategory);
 
   return (
-    <div className="p-6 relative">
-      <button
-        onClick={() => setSelectedCategory(null)}
-        className="mb-4 px-6 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-      >
-        Назад к категориям
-      </button>
-
-      <h1 className="text-3xl font-bold mb-8">
-        {currentCategory?.name}
-      </h1>
-
-      {error ? (
-        <div className="text-red-500">{error}</div>
-      ) : products.length === 0 && !loading ? (
-        <div className="text-gray-500">В данной категории пока нет товаров</div>
-      ) : (
+    <div className="space-y-6">
+      <ScrollToTop />
+      
+      {!selectedCategory ? (
+        // Список категорий
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {products.map(product => (
-              <div key={product.id} className="border rounded-lg p-4 shadow-sm flex flex-col h-full">
-                <div 
-                  className="flex-grow cursor-pointer"
-                  onClick={() => handleEdit(product)}
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold">Управление категориями</h2>
+            <Button
+              onClick={() => setIsAddingCategory(true)}
+              variant="primary"
+            >
+              Добавить категорию
+            </Button>
+          </div>
+
+          <Modal
+            isOpen={isAddingCategory}
+            onClose={() => {
+              setIsAddingCategory(false);
+              setIsEditingCategory(null);
+              setNewCategory({ name: '', description: '', parent_category: '' });
+            }}
+            title={isEditingCategory ? 'Редактирование категории' : 'Добавление категории'}
+          >
+            <form onSubmit={handleCategorySubmit} className="space-y-4">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
+                label="Изображение категории"
+              />
+              <Input
+                type="text"
+                placeholder="Название категории"
+                value={newCategory.name}
+                onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                label="Название категории"
+                required
+              />
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Описание
+                </label>
+                <textarea
+                  value={newCategory.description}
+                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Родительская категория
+                </label>
+                <select
+                  value={newCategory.parent_category}
+                  onChange={(e) => setNewCategory({ ...newCategory, parent_category: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  {product.image && (
-                    <img 
-                      src={product.image} 
-                      alt={product.name}
-                      className="w-full h-48 object-cover rounded-md mb-4"
-                    />
-                  )}
-                  <p className="text-gray-600 mb-4">{product.description}</p>
-                  <div className="mt-auto">
-                    <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
-                    <p className="text-lg font-bold mb-4">{product.price} ₽</p>
+                  <option value="">Без родительской категории</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end pt-4">
+                <Button type="submit" variant="primary">
+                  {isEditingCategory ? 'Сохранить изменения' : 'Добавить категорию'}
+                </Button>
+              </div>
+            </form>
+          </Modal>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {categories.map(category => (
+              <div key={category.id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <div 
+                  onClick={() => setSelectedCategory(category.id)}
+                  className="cursor-pointer"
+                >
+                  <img
+                    src={category.image || '/placeholder.png'}
+                    alt={category.name}
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="p-4">
+                    <h3 className="font-semibold text-lg">{category.name}</h3>
+                    <p className="text-gray-600 mt-2">{category.description}</p>
                   </div>
                 </div>
-                <div className="flex space-x-2 mt-4">
-                  <button
-                    onClick={() => handleEdit(product)}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                <div className="p-4 bg-gray-50 border-t flex gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEditCategory(category);
+                    }}
                   >
                     Редактировать
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product.id)}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCategory(category.id);
+                    }}
                   >
                     Удалить
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
-          
+        </>
+      ) : (
+        // Список товаров в категории
+        <>
+          <div className="flex justify-between items-center">
+            <div>
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className="mb-4 text-blue-500 hover:text-blue-700"
+              >
+                ← Назад к категориям
+              </button>
+              <h2 className="text-xl font-bold">Товары в категории</h2>
+            </div>
+            <Button
+              onClick={() => setIsAddingProduct(true)}
+              variant="primary"
+            >
+              Добавить товар
+            </Button>
+          </div>
+
+          <Modal
+            isOpen={isAddingProduct}
+            onClose={() => {
+              setIsAddingProduct(false);
+              setIsEditingProduct(null);
+              setNewProduct({ name: '', price: '', description: '', category: '' });
+            }}
+            title={isEditingProduct ? 'Редактирование товара' : 'Добавление нового товара'}
+          >
+            <form onSubmit={handleProductSubmit} className="space-y-4">
+              <h3 className="text-lg font-semibold mb-4">
+                {isEditingProduct ? 'Редактирование товара' : 'Добавление нового товара'}
+              </h3>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
+                label="Изображение товара"
+              />
+              <Input
+                type="text"
+                placeholder="Название товара"
+                value={newProduct.name}
+                onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                label="Название товара"
+                required
+              />
+              <Input
+                type="number"
+                placeholder="Цена"
+                value={newProduct.price}
+                onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                label="Цена"
+                required
+              />
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Описание
+                </label>
+                <textarea
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                />
+              </div>
+              <div className="flex justify-end pt-4">
+                <Button type="submit" variant="primary">
+                  {isEditingProduct ? 'Сохранить изменения' : 'Добавить товар'}
+                </Button>
+              </div>
+            </form>
+          </Modal>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {products.map(product => (
+              <div key={product.id} className="border p-4 rounded-lg">
+                <img
+                  src={product.image || '/placeholder.png'}
+                  alt={product.name}
+                  className="w-full h-48 object-cover rounded mb-4"
+                />
+                <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
+                <p className="text-gray-600 mb-2">{product.description}</p>
+                <p className="font-bold mb-4">{product.price} ₽</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => startEditProduct(product)}
+                  >
+                    Редактировать
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => handleDeleteProduct(product.id)}
+                  >
+                    Удалить
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div 
             ref={observerTarget} 
             className="h-10 flex justify-center items-center"
           >
             {loading && (
-              <div className="text-gray-500">
-                Загрузка...
-              </div>
+              <LoadingSpinner />
             )}
           </div>
-
-          {/* Кнопка прокрутки вверх */}
-          <button
-            onClick={scrollToTop}
-            className="fixed bottom-8 right-8 bg-gray-900 text-white p-4 rounded-full shadow-lg hover:bg-gray-700 transition-colors"
-            aria-label="Наверх"
-          >
-            <svg 
-              className="w-6 h-6" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M5 10l7-7m0 0l7 7m-7-7v18"
-              />
-            </svg>
-          </button>
         </>
-      )}
-
-      {editingProduct && (
-        <EditProductModal
-          product={editingProduct}
-          token={token}
-          onClose={() => setEditingProduct(null)}
-          onSave={handleSaveEdit}
-        />
       )}
     </div>
   );

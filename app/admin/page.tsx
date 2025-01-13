@@ -4,12 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
 import { useNotification } from '../contexts/NotificationContext';
-import AddProduct from './components/AddProduct';
 import ProductManager from './components/ProductManager';
-import AddCategory from './components/AddCategory';
-import ProductList from './components/ProductList';
-import PaymentMethodManager from './components/PaymentMethodManager';
 import DeliveryMethodManager from './components/DeliveryMethodManager';
+import PaymentMethodManager from './components/PaymentMethodManager';
 import CheckoutManager from './components/CheckoutManager';
 
 export default function AdminPage() {
@@ -34,59 +31,62 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-4 flex flex-wrap gap-2">
-        <button
-          className={`px-4 py-2 ${activeTab === 'products' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setActiveTab('products')}
-        >
-          Управление товарами
-        </button>
-        <button
-          className={`px-4 py-2 ${activeTab === 'categories' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setActiveTab('categories')}
-        >
-          Управление категориями
-        </button>
-        <button
-          className={`px-4 py-2 ${activeTab === 'payment-methods' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setActiveTab('payment-methods')}
-        >
-          Способы оплаты
-        </button>
-        <button
-          className={`px-4 py-2 ${activeTab === 'delivery-methods' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setActiveTab('delivery-methods')}
-        >
-          Способы доставки
-        </button>
-        <button
-          className={`px-4 py-2 ${activeTab === 'checkouts' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setActiveTab('checkouts')}
-        >
-          Заказы
-        </button>
-        <button
-          className={`px-4 py-2 ${activeTab === 'add-product' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setActiveTab('add-product')}
-        >
-          Добавить товар
-        </button>
-        <button
-          className={`px-4 py-2 ${activeTab === 'add-category' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setActiveTab('add-category')}
-        >
-          Добавить категорию
-        </button>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">Панель администратора</h1>
+      
+      <div className="mb-8">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('products')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm
+                ${activeTab === 'products'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Управление товарами
+            </button>
+            <button
+              onClick={() => setActiveTab('delivery')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm
+                ${activeTab === 'delivery'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Способы доставки
+            </button>
+            <button
+              onClick={() => setActiveTab('payment')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm
+                ${activeTab === 'payment'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Способы оплаты
+            </button>
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm
+                ${activeTab === 'orders'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Заказы
+            </button>
+          </nav>
+        </div>
       </div>
 
-      {activeTab === 'products' && <ProductManager token={token} />}
-      {activeTab === 'categories' && <ProductList token={token} />}
-      {activeTab === 'payment-methods' && <PaymentMethodManager token={token} />}
-      {activeTab === 'delivery-methods' && <DeliveryMethodManager token={token} />}
-      {activeTab === 'checkouts' && <CheckoutManager token={token} />}
-      {activeTab === 'add-product' && <AddProduct token={token} />}
-      {activeTab === 'add-category' && <AddCategory token={token} />}
+      <div className="mt-6">
+        {activeTab === 'products' && <ProductManager token={token} />}
+        {activeTab === 'delivery' && <DeliveryMethodManager token={token} />}
+        {activeTab === 'payment' && <PaymentMethodManager token={token} />}
+        {activeTab === 'orders' && <CheckoutManager token={token} />}
+      </div>
     </div>
   );
 } 
