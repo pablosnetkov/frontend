@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { apiRequest } from './utils/api';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../hooks/useAuth';
+import Input from './Input';
+import Select from './Select';
+import Textarea from './Textarea';
 
 interface BasketItemWithGood {
   id: number;
@@ -235,12 +238,12 @@ export default function CheckoutForm({ basketItems, onSuccess, onCancel }: Check
       onClick={onCancel}
     >
       <div 
-        className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
+        className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
         onClick={e => e.stopPropagation()}
       >
         <button
           onClick={onCancel}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
           aria-label="Close"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,9 +251,9 @@ export default function CheckoutForm({ basketItems, onSuccess, onCancel }: Check
           </svg>
         </button>
 
-        <h2 className="text-2xl font-bold mb-6 pr-8">Оформление заказа</h2>
+        <h2 className="text-2xl font-bold mb-8">Оформление заказа</h2>
         
-        <div className="mb-8 bg-gray-50 p-4 rounded-lg">
+        <div className="mb-8 bg-gray-50 p-6 rounded-lg">
           <h3 className="font-semibold mb-4">Товары в заказе:</h3>
           {basketItems.map(item => (
             <div key={item.id} className="flex justify-between items-start mb-4 border-b border-gray-200 pb-4 last:border-0 last:pb-0 last:mb-0">
@@ -272,153 +275,113 @@ export default function CheckoutForm({ basketItems, onSuccess, onCancel }: Check
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Способ оплаты <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={selectedPaymentMethod}
-                onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-              >
-                <option value="">Выберите способ оплаты</option>
-                {paymentMethods.map(method => (
-                  <option key={method.id} value={method.id}>
-                    {method.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Способ доставки <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={selectedDeliveryMethod}
-                onChange={(e) => setSelectedDeliveryMethod(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-              >
-                <option value="">Выберите способ доставки</option>
-                {deliveryMethods.map(method => (
-                  <option key={method.id} value={method.id}>
-                    {method.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Имя <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={recipientData.first_name}
-                onChange={(e) => setRecipientData({ ...recipientData, first_name: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-                placeholder="Введите имя"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Фамилия <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={recipientData.last_name}
-                onChange={(e) => setRecipientData({ ...recipientData, last_name: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-                placeholder="Введите фамилию"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Отчество
-              </label>
-              <input
-                type="text"
-                value={recipientData.middle_name}
-                onChange={(e) => setRecipientData({ ...recipientData, middle_name: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                placeholder="Введите отчество"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Индекс <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={recipientData.zip_code}
-                onChange={(e) => setRecipientData({ ...recipientData, zip_code: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-                placeholder="Введите почтовый индекс"
-                pattern="[0-9]{6}"
-                title="Введите 6 цифр почтового индекса"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Телефон <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                value={recipientData.phone}
-                onChange={(e) => setRecipientData({ ...recipientData, phone: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-                placeholder="+7 (___) ___-__-__"
-                pattern="^\+7\s?\(?[0-9]{3}\)?\s?[0-9]{3}-?[0-9]{2}-?[0-9]{2}$"
-                title="Введите номер телефона в формате +7 (XXX) XXX-XX-XX"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                value={recipientData.email}
-                onChange={(e) => setRecipientData({ ...recipientData, email: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-                placeholder="example@email.com"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Адрес доставки <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={recipientData.address}
-              onChange={(e) => setRecipientData({ ...recipientData, address: e.target.value })}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              rows={3}
+            <Select
+              label="Способ оплаты"
+              value={selectedPaymentMethod}
+              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
               required
-              placeholder="Введите полный адрес доставки"
+            >
+              <option value="">Выберите способ оплаты</option>
+              {paymentMethods.map(method => (
+                <option key={method.id} value={method.id}>
+                  {method.title}
+                </option>
+              ))}
+            </Select>
+
+            <Select
+              label="Способ доставки"
+              value={selectedDeliveryMethod}
+              onChange={(e) => setSelectedDeliveryMethod(e.target.value)}
+              required
+            >
+              <option value="">Выберите способ доставки</option>
+              {deliveryMethods.map(method => (
+                <option key={method.id} value={method.id}>
+                  {method.title}
+                </option>
+              ))}
+            </Select>
+
+            <Input
+              label="Имя"
+              type="text"
+              value={recipientData.first_name}
+              onChange={(e) => setRecipientData({ ...recipientData, first_name: e.target.value })}
+              required
+              placeholder="Введите имя"
+            />
+
+            <Input
+              label="Фамилия"
+              type="text"
+              value={recipientData.last_name}
+              onChange={(e) => setRecipientData({ ...recipientData, last_name: e.target.value })}
+              required
+              placeholder="Введите фамилию"
+            />
+
+            <Input
+              label="Отчество"
+              type="text"
+              value={recipientData.middle_name}
+              onChange={(e) => setRecipientData({ ...recipientData, middle_name: e.target.value })}
+              placeholder="Введите отчество"
+            />
+
+            <Input
+              label="Индекс"
+              type="text"
+              value={recipientData.zip_code}
+              onChange={(e) => setRecipientData({ ...recipientData, zip_code: e.target.value })}
+              required
+              placeholder="Введите почтовый индекс"
+              pattern="[0-9]{6}"
+              title="Введите 6 цифр почтового индекса"
+            />
+
+            <Input
+              label="Телефон"
+              type="tel"
+              value={recipientData.phone}
+              onChange={(e) => setRecipientData({ ...recipientData, phone: e.target.value })}
+              required
+              placeholder="+7 (___) ___-__-__"
+              pattern="^\+7\s?\(?[0-9]{3}\)?\s?[0-9]{3}-?[0-9]{2}-?[0-9]{2}$"
+              title="Введите номер телефона в формате +7 (XXX) XXX-XX-XX"
+            />
+
+            <Input
+              label="Email"
+              type="email"
+              value={recipientData.email}
+              onChange={(e) => setRecipientData({ ...recipientData, email: e.target.value })}
+              required
+              placeholder="example@email.com"
             />
           </div>
 
-          <div className="flex gap-4 pt-4 border-t border-gray-200">
+          <Textarea
+            label="Адрес доставки"
+            value={recipientData.address}
+            onChange={(e) => setRecipientData({ ...recipientData, address: e.target.value })}
+            rows={3}
+            required
+            placeholder="Введите полный адрес доставки"
+          />
+
+          <div className="flex gap-4 pt-6 border-t border-gray-200">
             <button
               type="submit"
               disabled={loading}
-              className={`flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium
+              className={`
+                flex-1 px-6 py-3 
+                bg-blue-600 text-white 
+                rounded-lg font-medium
                 ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'} 
-                transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                transition-colors 
+                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+              `}
             >
               {loading ? (
                 <span className="flex items-center justify-center">

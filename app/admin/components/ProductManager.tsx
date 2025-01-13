@@ -8,6 +8,9 @@ import Button from '../../components/Button';
 import Input from '../../components/Input';
 import ScrollToTop from '../../components/ScrollToTop';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import Select from '../../components/Select';
+import Textarea from '../../components/Textarea';
+import FileInput from '../../components/FileInput';
 
 interface Category {
   id: number;
@@ -139,6 +142,10 @@ export default function ProductManager({ token }: { token: string }) {
       if (selectedImage) {
         const formDataImage = new FormData();
         formDataImage.append('file', selectedImage);
+        formDataImage.append('name', newCategory.name);
+        formDataImage.append('description', newCategory.description);
+        formDataImage.append('parent_category', newCategory.parent_category);
+
         const imageResponse = await apiRequest<{ url: string }>('/api/v1/images/', {
           method: 'POST',
           body: formDataImage,
@@ -146,6 +153,7 @@ export default function ProductManager({ token }: { token: string }) {
             'Authorization': `Bearer ${token}`
           }
         });
+
         imageUrl = imageResponse.url;
       }
 
@@ -158,7 +166,7 @@ export default function ProductManager({ token }: { token: string }) {
           },
           body: JSON.stringify({
             ...newCategory,
-            image: imageUrl || isEditingCategory.image,
+            image: imageUrl || (isEditingCategory.image === '/placeholder.png' ? '' : isEditingCategory.image),
             parent_category: newCategory.parent_category ? Number(newCategory.parent_category) : null
           })
         });
@@ -199,6 +207,11 @@ export default function ProductManager({ token }: { token: string }) {
       if (selectedImage) {
         const formDataImage = new FormData();
         formDataImage.append('file', selectedImage);
+        formDataImage.append('name', newProduct.name);
+        formDataImage.append('price', newProduct.price);
+        formDataImage.append('description', newProduct.description);
+        formDataImage.append('category', newProduct.category);
+
         const imageResponse = await apiRequest<{ url: string }>('/api/v1/images/', {
           method: 'POST',
           body: formDataImage,
@@ -206,6 +219,7 @@ export default function ProductManager({ token }: { token: string }) {
             'Authorization': `Bearer ${token}`
           }
         });
+
         imageUrl = imageResponse.url;
       }
 
@@ -219,7 +233,7 @@ export default function ProductManager({ token }: { token: string }) {
           body: JSON.stringify({
             ...newProduct,
             price: Number(newProduct.price),
-            image: imageUrl || isEditingProduct.image,
+            image: imageUrl || (isEditingProduct.image === '/placeholder.png' ? '' : isEditingProduct.image),
             category: selectedCategory
           })
         });
@@ -340,15 +354,26 @@ export default function ProductManager({ token }: { token: string }) {
               setIsAddingCategory(false);
               setIsEditingCategory(null);
               setNewCategory({ name: '', description: '', parent_category: '' });
+              setSelectedImage(null);
             }}
             title={isEditingCategory ? 'Редактирование категории' : 'Добавление категории'}
           >
             <form onSubmit={handleCategorySubmit} className="space-y-4">
-              <Input
-                type="file"
+              <FileInput
                 accept="image/*"
                 onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
                 label="Изображение категории"
+                selectedFile={selectedImage}
+                onClear={() => {
+                  setSelectedImage(null);
+                  if (isEditingCategory) {
+                    setIsEditingCategory({
+                      ...isEditingCategory,
+                      image: '/placeholder.png'
+                    });
+                  }
+                }}
+                currentImageUrl={isEditingCategory?.image}
               />
               <Input
                 type="text"
@@ -358,32 +383,22 @@ export default function ProductManager({ token }: { token: string }) {
                 label="Название категории"
                 required
               />
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Описание
-                </label>
-                <textarea
-                  value={newCategory.description}
-                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Родительская категория
-                </label>
-                <select
-                  value={newCategory.parent_category}
-                  onChange={(e) => setNewCategory({ ...newCategory, parent_category: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Без родительской категории</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
+              <Textarea
+                value={newCategory.description}
+                onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                label="Описание"
+                rows={3}
+              />
+              <Select
+                label="Родительская категория"
+                value={newCategory.parent_category}
+                onChange={(e) => setNewCategory({ ...newCategory, parent_category: e.target.value })}
+              >
+                <option value="">Без родительской категории</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </Select>
               <div className="flex justify-end pt-4">
                 <Button type="submit" variant="primary">
                   {isEditingCategory ? 'Сохранить изменения' : 'Добавить категорию'}
@@ -460,18 +475,26 @@ export default function ProductManager({ token }: { token: string }) {
               setIsAddingProduct(false);
               setIsEditingProduct(null);
               setNewProduct({ name: '', price: '', description: '', category: '' });
+              setSelectedImage(null);
             }}
             title={isEditingProduct ? 'Редактирование товара' : 'Добавление нового товара'}
           >
             <form onSubmit={handleProductSubmit} className="space-y-4">
-              <h3 className="text-lg font-semibold mb-4">
-                {isEditingProduct ? 'Редактирование товара' : 'Добавление нового товара'}
-              </h3>
-              <Input
-                type="file"
+              <FileInput
                 accept="image/*"
                 onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
                 label="Изображение товара"
+                selectedFile={selectedImage}
+                onClear={() => {
+                  setSelectedImage(null);
+                  if (isEditingProduct) {
+                    setIsEditingProduct({
+                      ...isEditingProduct,
+                      image: '/placeholder.png'
+                    });
+                  }
+                }}
+                currentImageUrl={isEditingProduct?.image}
               />
               <Input
                 type="text"
@@ -489,17 +512,21 @@ export default function ProductManager({ token }: { token: string }) {
                 label="Цена"
                 required
               />
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Описание
-                </label>
-                <textarea
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  rows={3}
-                />
-              </div>
+              <Textarea
+                value={newProduct.description}
+                onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                label="Описание"
+                rows={3}
+              />
+              <Select
+                label="Категория"
+                value={selectedCategory.toString()}
+                disabled
+              >
+                <option value={selectedCategory}>
+                  {categories.find(cat => cat.id === selectedCategory)?.name}
+                </option>
+              </Select>
               <div className="flex justify-end pt-4">
                 <Button type="submit" variant="primary">
                   {isEditingProduct ? 'Сохранить изменения' : 'Добавить товар'}

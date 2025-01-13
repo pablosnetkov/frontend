@@ -3,6 +3,11 @@
 import { useState } from 'react';
 import { apiRequest } from '../../components/utils/api';
 import { useNotification } from '../../contexts/NotificationContext';
+import Input from '../../components/Input';
+import Select from '../../components/Select';
+import Textarea from '../../components/Textarea';
+import Button from '../../components/Button';
+import FileInput from '../../components/FileInput';
 
 interface Category {
     id: number;
@@ -80,89 +85,53 @@ export default function EditCategoryForm({ category, categories, token, onCancel
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Изображение категории
-                </label>
-                {category.image && (
-                    <div className="mb-2">
-                        <img
-                            src={category.image}
-                            alt={category.name}
-                            className="w-24 h-24 object-cover rounded"
-                        />
-                    </div>
-                )}
-                <input
-                    type="file"
-                    onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                    accept="image/*"
-                />
-            </div>
+            <FileInput
+                accept="image/*"
+                onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
+                label="Изображение категории"
+                selectedFile={selectedImage}
+                onClear={() => setSelectedImage(null)}
+                currentImageUrl={category.image}
+            />
 
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Название категории
-                </label>
-                <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                    required
-                />
-            </div>
+            <Input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                label="Название категории"
+                required
+            />
 
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Описание
-                </label>
-                <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                    rows={4}
-                />
-            </div>
+            <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                label="Описание"
+                rows={4}
+            />
 
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Родительская категория
-                </label>
-                <select
-                    value={formData.parent_category}
-                    onChange={(e) => setFormData({ ...formData, parent_category: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                >
-                    <option value="">Без родительской категории</option>
-                    {categories
-                        .filter(cat => cat.id !== category.id)
-                        .map(cat => (
-                            <option key={cat.id} value={cat.id}>
-                                {cat.name}
-                            </option>
-                        ))
-                    }
-                </select>
-            </div>
+            <Select
+                label="Родительская категория"
+                value={formData.parent_category}
+                onChange={(e) => setFormData({ ...formData, parent_category: e.target.value })}
+            >
+                <option value="">Без родительской категории</option>
+                {categories
+                    .filter(cat => cat.id !== category.id)
+                    .map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                        </option>
+                    ))
+                }
+            </Select>
 
-            <div className="flex gap-2">
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className={`px-4 py-2 bg-green-500 text-white rounded-md 
-                        ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-600'}`}
-                >
-                    {loading ? 'Сохранение...' : 'Сохранить'}
-                </button>
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-                >
+            <div className="flex gap-4 pt-4">
+                <Button type="submit" variant="primary">
+                    Сохранить
+                </Button>
+                <Button type="button" variant="secondary" onClick={onCancel}>
                     Отмена
-                </button>
+                </Button>
             </div>
         </form>
     );

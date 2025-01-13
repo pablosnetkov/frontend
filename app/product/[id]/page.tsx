@@ -4,7 +4,7 @@ import Link from 'next/link';
 import ProductCardFilled from '../../components/ProductCardFilled';
 import { apiRequest } from '../../components/utils/api';
 import { useEffect, useState } from 'react';
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 
 interface Product {
   id: number;
@@ -14,20 +14,21 @@ interface Product {
   image?: string;
 }
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function ProductPage({ params }: PageProps) {
+export default function ProductPage() {
+  const params = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const resolvedParams = use(params);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const numericId = parseInt(resolvedParams.id, 10);
+        const id = params?.id;
+        if (!id || Array.isArray(id)) {
+          throw new Error('Неверный ID продукта');
+        }
+
+        const numericId = parseInt(id, 10);
         if (isNaN(numericId)) {
           throw new Error('Неверный ID продукта');
         }
@@ -43,7 +44,7 @@ export default function ProductPage({ params }: PageProps) {
     };
 
     fetchProduct();
-  }, [resolvedParams.id]);
+  }, [params?.id]);
 
   if (loading) {
     return <div className="text-center mt-8">Загрузка...</div>;

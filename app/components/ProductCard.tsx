@@ -35,7 +35,6 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [quantity, setQuantity] = useState(0);
   const { showNotification } = useNotification();
 
-  // Проверяем, есть ли товар в корзине
   const checkBasketStatus = async () => {
     if (!isAuthenticated) return;
 
@@ -68,7 +67,6 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     try {
       if (isInBasket && basketItemId) {
-        // Обновляем количество без уведомления
         await apiRequest(`/api/v1/me/basket-items/${basketItemId}/`, {
           method: 'PATCH',
           body: JSON.stringify({
@@ -77,7 +75,6 @@ export default function ProductCard({ product }: ProductCardProps) {
         });
         setQuantity(prev => prev + 1);
       } else {
-        // Добавляем новый товар с уведомлением
         const response = await apiRequest<BasketItem>('/api/v1/me/basket-items/', {
           method: 'POST',
           body: JSON.stringify({
@@ -88,8 +85,9 @@ export default function ProductCard({ product }: ProductCardProps) {
         setIsInBasket(true);
         setBasketItemId(response.id);
         setQuantity(1);
-        showNotification('Товар добавлен в корзину', 'success');
       }
+      
+      showNotification('Товар добавлен в корзину', 'success');
     } catch (err) {
       console.error('Ошибка при работе с корзиной:', err);
       showNotification('Произошла ошибка', 'error');
@@ -97,83 +95,58 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="group relative bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
-      <Link href={`/product/${product.id}`}>
-        <div className="aspect-square overflow-hidden rounded-t-xl relative">
+    <Link href={`/product/${product.id}`}>
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+        <div className="aspect-square">
           <img 
             src={product.image || '/placeholder.jpg'}
             alt={product.name}
-            className="object-cover w-full h-full transform transition-transform duration-500 group-hover:scale-110"
+            className="object-cover w-full h-full"
           />
-          {(product.discount ?? 0) > 0 && (
-            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-medium">
-              -{product.discount}%
-            </div>
-          )}
         </div>
         <div className="p-4">
-          <h3 className="text-lg font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+          <h3 className="text-lg font-medium text-gray-900 mb-2 line-clamp-2">
             {product.name}
           </h3>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              {(product.discount ?? 0) > 0 ? (
-                <>
-                  <span className="text-2xl font-bold text-gray-900">
-                    {(product.price * (1 - (product.discount ?? 0) / 100)).toFixed(0)} ₽
-                  </span>
-                  <span className="ml-2 text-sm text-gray-500 line-through">
-                    {product.price.toLocaleString()} ₽
-                  </span>
-                </>
+          <div className="flex items-center justify-between">
+            <span className="text-xl font-bold text-gray-900">
+              {product.price.toLocaleString()} ₽
+            </span>
+            <div onClick={e => e.preventDefault()}>
+              {isInBasket ? (
+                <QuantityControl
+                  quantity={quantity}
+                  onIncrease={handleAddToCart}
+                  onDecrease={async () => {
+                    if (!basketItemId) return;
+                    try {
+                      await apiRequest(`/api/v1/me/basket-items/${basketItemId}/`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                          quantity: quantity - 1
+                        })
+                      });
+                      setQuantity(prev => prev - 1);
+                    } catch (err) {
+                      console.error('Ошибка при изменении количества:', err);
+                      showNotification('Ошибка при изменении количества', 'error');
+                    }
+                  }}
+                  isLoading={false}
+                />
               ) : (
-                <span className="text-2xl font-bold text-gray-900">
-                  {product.price.toLocaleString()} ₽
-                </span>
+                <button 
+                  onClick={handleAddToCart}
+                  className="px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors flex items-center gap-2"
+                >
+                  <span>🛒</span>
+                  В корзину
+                </button>
               )}
             </div>
           </div>
         </div>
-      </Link>
-
-      <div className="px-4 pb-4">
-        {isInBasket ? (
-          <div className="flex items-center justify-between">
-            <QuantityControl
-              quantity={quantity}
-              onIncrease={handleAddToCart}
-              onDecrease={async () => {
-                if (!basketItemId) return;
-                try {
-                  await apiRequest(`/api/v1/me/basket-items/${basketItemId}/`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({
-                      quantity: quantity - 1
-                    })
-                  });
-                  setQuantity(prev => prev - 1);
-                } catch (err) {
-                  console.error('Ошибка при изменении количества:', err);
-                  showNotification('Ошибка при изменении количества', 'error');
-                }
-              }}
-              isLoading={false}
-            />
-          </div>
-        ) : (
-          <button 
-            onClick={handleAddToCart}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-              transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 
-              focus:ring-blue-500 focus:ring-offset-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            В корзину
-          </button>
-        )}
       </div>
-    </div>
+    </Link>
   );
 }
